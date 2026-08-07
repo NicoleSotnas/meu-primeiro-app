@@ -1,4 +1,4 @@
-import { Component, signal, computed } from '@angular/core';
+import { Component, signal, computed, effect } from '@angular/core';
 import { Produto } from '../produto/produto';
 
 @Component({
@@ -10,6 +10,7 @@ import { Produto } from '../produto/produto';
 export class ListaProdutos {
   //writable signal -> signal (reativo) que permite alterações (com set ou update)
 
+  //Atributo da classe
   produtos = signal([
     { nome: 'Notebook', preco: 3800 },
     { nome: 'Mouse', preco: 150 },
@@ -24,9 +25,11 @@ export class ListaProdutos {
   });
 
   exibirProduto(nome: string) {
-    console.log('Produto selecionado:', nome);
-    // Aqui você pode atualizar o estado, abrir modal, etc.
+    this.produtoSelecionado.set(nome);
   }
+
+  produtoSelecionado = signal<string | null>(null);
+
   //update-> adiciona um item ao writable signal
   adicionarProduto() {
     this.produtos.update((listaAtual) => [...listaAtual, { nome: 'Teclado', preco: 250 }]);
@@ -35,4 +38,24 @@ export class ListaProdutos {
   substituirProdutos() {
     this.produtos.set([{ nome: 'Produto novo', preco: 999 }]);
   }
+
+  //método construtor -> formata os objetos criados a partir desta classe
+  constructor() {
+    //Estes 2 effects geram mensagens no terminal sempre que akterações são realizadas.
+    //effect observa alterações realizada no signal (que é o vetor de produtos)
+    effect(() => {
+      console.log('Lista de produtos alterada:', this.produtos());
+    });
+
+    //effect observa alterações do computed signal (valorTotal)
+    effect(() => {
+      console.log('Valor total atualizado:', this.valorTotal());
+    });
+    // effect observa o title da página se a condição for atendida
+    effect(() => {
+      if (typeof document !== 'undefined') {
+        document.title = `(${this.totalProdutos()}) Minha Loja`;
+      }
+    });
+  } //fim do constructor
 }
