@@ -1,7 +1,6 @@
 import { Component, signal, computed, effect, inject } from '@angular/core';
-
-import { Produto } from '../produto/produto';
 import { ProdutosService } from '../produtos.service';
+import { Produto } from '../produto/produto';
 
 @Component({
   selector: 'app-lista-produtos',
@@ -10,25 +9,40 @@ import { ProdutosService } from '../produtos.service';
   styleUrl: './lista-produtos.css',
 })
 export class ListaProdutos {
+  constructor() {
+    // carrega da API
+    this.carregarProdutos();
+
+    // effects continuam iguais
+    effect(() => {
+      console.log('Lista de produtos alterada:', this.produtos());
+    });
+    effect(() => {
+      console.log('Valor total atualizado:', this.valorTotal());
+    });
+    effect(() => {
+      if (typeof document !== 'undefined') {
+        document.title = `(${this.totalProdutos()}) Minha Loja`;
+      }
+    });
+  }
+
   private produtosService = inject(ProdutosService);
 
-  //SIGNALS
+  // SIGNALS
 
-  //writable signal -> signal (reativo) que permite alterações (com set ou update)
-
-  produtos = signal<{ nome: string; preco: number }[]>([]);
+  erro = signal<string | null>(null);
 
   carregando = signal(true);
+
+  produtos = signal<{ nome: string; preco: number }[]>([]);
 
   produtoSelecionado = signal<string | null>(null);
 
   carrinho = signal<{ nome: string; preco: number }[]>([]);
 
-  erro = signal<string | null>(null);
+  // COMPUTED
 
-  //COMPUTED SIGNALS
-
-  //computed signal -> observa outro siganl e se atualiza automaticamente
   totalProdutos = computed(() => this.produtos().length);
 
   valorTotal = computed(() => {
@@ -41,32 +55,25 @@ export class ListaProdutos {
     return this.carrinho().reduce((total, item) => total + item.preco, 0);
   });
 
-  // EFFECTS
-  //método construtor -> formata os objetos criados a partir desta classe
-  constructor() {
-    // carrega da API
-    this.carregarProdutos();
+  exibirProduto(nome: string) {
+    this.produtoSelecionado.set(nome);
+  }
 
-    // effects continuam iguais
-    effect(() => {
-      console.log('Lista de produtos alterada:', this.produtos());
-    });
+  adicionarProduto() {
+    this.produtos.update((listaAtual) => [...listaAtual, { nome: 'Teclado', preco: 250 }]);
+  }
 
-    effect(() => {
-      console.log('Valor total atualizado:', this.valorTotal());
-    });
-    effect(() => {
-      if (typeof document !== 'undefined') {
-        document.title = `(${this.totalProdutos()}) Minha Loja`;
-      }
-    });
-  } //fim do constructor
+  substituirProdutos() {
+    this.produtos.set([{ nome: 'Produto novo', preco: 999 }]);
+  }
+
+  adicionarAoCarrinho(produto: { nome: string; preco: number }) {
+    this.carrinho.update((listaAtual) => [...listaAtual, produto]);
+  }
 
   carregarProdutos() {
     this.erro.set(null); // limpa erro anterior
-
-    this.carregando.set(true);
-
+    this.carregando.set(true); // ativa loading
     this.produtosService.buscarProdutos().subscribe({
       next: (dados) => {
         const produtos = this.produtosService.transformarProdutos(dados);
@@ -79,24 +86,5 @@ export class ListaProdutos {
         this.carregando.set(false);
       },
     });
-  } //fim carregar produtos
-
-  // AÇÕES QUE ALTERAM VALORES DE SIGNALS (SET E UPDATES)
-
-  exibirProduto(nome: string) {
-    this.produtoSelecionado.set(nome);
-  }
-
-  //update-> adiciona um item ao writable signal
-  adicionarProduto() {
-    this.produtos.update((listaAtual) => [...listaAtual, { nome: 'Teclado', preco: 250 }]);
-  }
-  //set -> altera um item do writable signal
-  substituirProdutos() {
-    this.produtos.set([{ nome: 'Produto novo', preco: 999 }]);
-  }
-
-  adicionarAoCarrinho(produto: { nome: string; preco: number }) {
-    this.carrinho.update((listaAtual) => [...listaAtual, produto]);
   }
 }
